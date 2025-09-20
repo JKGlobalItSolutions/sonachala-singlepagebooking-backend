@@ -6,6 +6,7 @@ const {
   getMyRooms,
   updateRoom,
   deleteRoom,
+  getRoomStats,
 } = require("../controllers/roomController");
 const { protect } = require("../middleware/auth");
 const upload = require("../middleware/uploadMiddleware");
@@ -26,6 +27,9 @@ router.put("/update/:id", protect, upload.single("image"), updateRoom);
 
 // Delete room
 router.delete("/delete/:id", protect, deleteRoom);
+
+// Get room stats
+router.get("/room-stats", protect, getRoomStats);
 
 
 
