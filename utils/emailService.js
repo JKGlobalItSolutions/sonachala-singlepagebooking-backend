@@ -2,12 +2,12 @@ const nodemailer = require('nodemailer');
 
 // Create SMTP transporter
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // use SSL
+    host: 'smtp-relay.brevo.com',
+    port: 587,
+    secure: false, // use TLS
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
+        user: process.env.BREVO_USER,
+        pass: process.env.BREVO_PASSWORD
     },
     tls: {
         rejectUnauthorized: false
