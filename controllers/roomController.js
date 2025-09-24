@@ -14,7 +14,7 @@ const createRoom = async (req, res) => {
     const room = await Room.create({
       ...req.body,
       hotel: hotel._id,
-      image: req.file ? `/uploads/rooms/${req.file.filename}` : "",
+      image: req.file ? req.file.path : "",  // Cloudinary URL is stored in req.file.path
     });
 
     res.status(201).json({ message: "Room created", room });

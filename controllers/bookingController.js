@@ -110,9 +110,34 @@ exports.createBooking = async (req, res) => {
     }
   } catch (error) {
     console.error("Booking creation error:", error);
-    res.status(400).json({ 
+    
+    // Check for specific error types
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'Validation error',
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: 'Duplicate booking error',
+        error: 'A booking with this information already exists'
+      });
+    }
+    
+    // Handle file upload errors
+    if (error.message && error.message.includes('file')) {
+      return res.status(400).json({
+        message: 'File upload error',
+        error: error.message
+      });
+    }
+    
+    // Generic error response
+    res.status(500).json({ 
       message: 'Failed to create booking', 
-      error: error.message 
+      error: error.message || 'Internal server error'
     });
   }
 };

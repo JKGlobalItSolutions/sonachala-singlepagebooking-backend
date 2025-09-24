@@ -11,7 +11,11 @@ const transporter = nodemailer.createTransport({
     },
     tls: {
         rejectUnauthorized: false
-    }
+    },
+    // Add timeout settings
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 5000,   // 5 seconds
+    socketTimeout: 10000,    // 10 seconds
 });
 
 // HTML table styles
@@ -92,6 +96,8 @@ const generateBookingTable = (booking) => `
     </table>
 `;
 
+const retryOperation = require('./retryOperation');
+
 // Send confirmation email to guest
 const sendGuestConfirmationEmail = async (booking) => {
     try {
@@ -139,8 +145,10 @@ const sendGuestConfirmationEmail = async (booking) => {
             `
         };
 
-        await transporter.sendMail(mailOptions);
-        console.log('Guest confirmation email sent successfully');
+        await retryOperation(async () => {
+            await transporter.sendMail(mailOptions);
+            console.log('Guest confirmation email sent successfully');
+        });
     } catch (error) {
         console.error('Error sending guest confirmation email:', error);
         throw error;
@@ -190,8 +198,10 @@ const sendAdminNotificationEmail = async (booking, adminEmail) => {
             `
         };
 
-        await transporter.sendMail(mailOptions);
-        console.log('Admin notification email sent successfully to:', adminEmail || process.env.EMAIL_USER);
+        await retryOperation(async () => {
+            await transporter.sendMail(mailOptions);
+            console.log('Admin notification email sent successfully to:', adminEmail || process.env.EMAIL_USER);
+        });
     } catch (error) {
         console.error('Error sending admin notification email:', error);
         console.error('Admin email was:', adminEmail);
