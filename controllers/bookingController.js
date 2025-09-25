@@ -14,7 +14,7 @@ exports.createBooking = async (req, res) => {
     // Handle payment proof image upload
     let paymentProofImageUrl = null;
     if (req.file) {
-      paymentProofImageUrl = `/uploads/payment-proofs/${req.file.filename}`;
+      paymentProofImageUrl = req.file.path; // This will be the Cloudinary URL
     }
 
     // Generate unique booking ID

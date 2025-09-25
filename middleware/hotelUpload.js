@@ -1,16 +1,18 @@
 const multer = require('multer');
-const path = require('path');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('../config/cloudinary');
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/hotels'); // Save to uploads/hotels directory
+// Configure Cloudinary storage for hotels
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'hotels',
+    format: async (req, file) => 'jpg',
+    public_id: (req, file) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      return 'hotel-' + uniqueSuffix;
+    },
   },
-  filename: function (req, file, cb) {
-    // Create unique filename with timestamp and original extension
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'hotel-' + uniqueSuffix + path.extname(file.originalname));
-  }
 });
 
 // File filter

@@ -17,25 +17,19 @@
 
 
 const multer = require("multer");
+const cloudinary = require('../config/cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const path = require("path");
-const fs = require("fs");
 
-// Storage configuration for different file types
-const createStorage = (uploadPath) => {
-  return multer.diskStorage({
-    destination: function (req, file, cb) {
-      const dir = path.join(__dirname, `../uploads/${uploadPath}`);
-      // ensure folder exists
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-      cb(null, Date.now() + path.extname(file.originalname));
-    },
-  });
-};
+// Configure Cloudinary storage for rooms
+const roomStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'hotel_rooms',
+    format: async (req, file) => 'jpg', // supports promises as well
+    public_id: (req, file) => Date.now() + '-' + file.originalname,
+  },
+});
 
 // File filter to allow only images and PDFs
 const fileFilter = (req, file, cb) => {
@@ -52,14 +46,24 @@ const fileFilter = (req, file, cb) => {
 
 // Create upload middleware for rooms
 const roomUpload = multer({ 
-  storage: createStorage('rooms'),
+  storage: roomStorage,
   fileFilter: fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
+// Configure Cloudinary storage for payment proofs
+const paymentStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'payment_proofs',
+    format: async (req, file) => 'jpg',
+    public_id: (req, file) => Date.now() + '-' + file.originalname,
+  },
+});
+
 // Create upload middleware for payment proofs
 const paymentUpload = multer({ 
-  storage: createStorage('payment-proofs'),
+  storage: paymentStorage,
   fileFilter: fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });

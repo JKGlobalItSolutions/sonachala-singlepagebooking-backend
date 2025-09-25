@@ -1,25 +1,25 @@
 const Hotel = require("../models/Hotel");
-const fs = require('fs').promises;
-const path = require('path');
+const cloudinary = require('../config/cloudinary');
+
+// Helper function to extract public_id from Cloudinary URL
+const getPublicId = (url) => {
+  const parts = url.split('/');
+  const publicIdWithExtension = parts.slice(parts.indexOf('upload') + 2).join('/');
+  return publicIdWithExtension.substring(0, publicIdWithExtension.lastIndexOf('.'));
+};
 
 // Create Hotel (only if admin has no hotel)
 const createHotel = async (req, res) => {
   try {
     const existingHotel = await Hotel.findOne({ admin: req.admin._id });
     if (existingHotel) {
-      // Delete uploaded files if hotel already exists
-      if (req.files) {
-        for (const file of req.files) {
-          await fs.unlink(file.path);
-        }
-      }
       return res.status(400).json({ message: "You already created a hotel. Update instead." });
     }
 
     const { name, address, contact } = req.body;
 
-    // Process uploaded images
-    const imagePaths = req.files ? req.files.map(file => '/uploads/hotels/' + file.filename) : [];
+    // Process uploaded images from Cloudinary
+    const imagePaths = req.files ? req.files.map(file => file.path) : [];
 
     const hotel = await Hotel.create({
       name,
@@ -57,17 +57,10 @@ const updateHotel = async (req, res) => {
     // Find existing hotel
     const existingHotel = await Hotel.findOne({ admin: req.admin._id });
     if (!existingHotel) {
-      // Delete uploaded files if hotel doesn't exist
-      if (req.files) {
-        for (const file of req.files) {
-          await fs.unlink(file.path);
-        }
-      }
       return res.status(404).json({ message: "No hotel found" });
     }
 
     // Determine kept images from body if provided
-    // Frontend may send 'images' as JSON string of array or omit it
     let keptImages = existingHotel.images || [];
     if (typeof req.body.images === 'string') {
       try {
@@ -76,20 +69,22 @@ const updateHotel = async (req, res) => {
           keptImages = parsed;
         }
       } catch (_) {
-        // ignore parse errors; fall back to existing images
+        // ignore parse errors
       }
+    } else if (Array.isArray(req.body.images)) {
+      keptImages = req.body.images;
     }
 
-    // Compute removed images and delete from disk
+    // Compute removed images and delete from Cloudinary
     const removedImages = (existingHotel.images || []).filter(p => !keptImages.includes(p));
-    for (const imgPath of removedImages) {
-      const fullPath = path.join(__dirname, '..', imgPath);
-      await fs.unlink(fullPath).catch(() => {});
+    if (removedImages.length > 0) {
+      const publicIds = removedImages.map(getPublicId);
+      await cloudinary.api.delete_resources(publicIds);
     }
 
-    // Append any newly uploaded files
+    // Append any newly uploaded files from Cloudinary
     if (req.files && req.files.length > 0) {
-      const newImagePaths = req.files.map(file => '/uploads/hotels/' + file.filename);
+      const newImagePaths = req.files.map(file => file.path);
       keptImages = [...keptImages, ...newImagePaths];
     }
 
@@ -109,12 +104,7 @@ const updateHotel = async (req, res) => {
 
     res.json({ message: "Hotel updated successfully", hotel });
   } catch (err) {
-    // Clean up uploaded files in case of error
-    if (req.files) {
-      for (const file of req.files) {
-        await fs.unlink(file.path).catch(console.error);
-      }
-    }
+    // No need to clean up local files as they are not stored
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
@@ -125,12 +115,10 @@ const deleteHotel = async (req, res) => {
     const hotel = await Hotel.findOne({ admin: req.admin._id });
     if (!hotel) return res.status(404).json({ message: "No hotel found" });
 
-    // Delete associated image files
+    // Delete associated images from Cloudinary
     if (hotel.images && hotel.images.length > 0) {
-      for (const imagePath of hotel.images) {
-        const fullPath = path.join(__dirname, '..', imagePath);
-        await fs.unlink(fullPath).catch(console.error);
-      }
+      const publicIds = hotel.images.map(getPublicId);
+      await cloudinary.api.delete_resources(publicIds);
     }
 
     // Delete hotel from database

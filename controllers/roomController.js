@@ -14,7 +14,7 @@ const createRoom = async (req, res) => {
     const room = await Room.create({
       ...req.body,
       hotel: hotel._id,
-      image: req.file ? req.file.path : "",  // Cloudinary URL is stored in req.file.path
+      image: req.file ? req.file.path : "", // This will be the Cloudinary URL
     });
 
     res.status(201).json({ message: "Room created", room });
@@ -77,7 +77,7 @@ const updateRoom = async (req, res) => {
 
     // Update image if a new file is uploaded
     if (req.file) {
-      updates.image = `/uploads/rooms/${req.file.filename}`;
+      updates.image = req.file.path; // This will be the new Cloudinary URL
     }
 
     const room = await Room.findOneAndUpdate(
