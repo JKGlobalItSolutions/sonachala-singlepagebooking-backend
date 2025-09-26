@@ -156,13 +156,13 @@ const sendGuestConfirmationEmail = async (booking) => {
 };
 
 // Send notification email to admin
-const sendAdminNotificationEmail = async (booking, adminEmail) => {
+const sendAdminNotificationEmail = async (booking, admin) => {
 
-    console.log(adminEmail);
+    console.log(admin);
     try {
         const mailOptions = {
             from: process.env.EMAIL_USER,
-            to: adminEmail || process.env.EMAIL_USER, // Use admin email if provided, fallback to sender
+            to: admin.email || process.env.EMAIL_USER, // Use admin email if provided, fallback to sender
             subject: 'New Booking Received',
             html: `
                 ${tableStyles}
@@ -200,11 +200,11 @@ const sendAdminNotificationEmail = async (booking, adminEmail) => {
 
         await retryOperation(async () => {
             await transporter.sendMail(mailOptions);
-            console.log('Admin notification email sent successfully to:', adminEmail || process.env.EMAIL_USER);
+            console.log('Admin notification email sent successfully to:', admin.email || process.env.EMAIL_USER);
         });
     } catch (error) {
         console.error('Error sending admin notification email:', error);
-        console.error('Admin email was:', adminEmail);
+        console.error('Admin email was:', admin.email || process.env.EMAIL_USER);
         console.error('Fallback email:', process.env.EMAIL_USER);
         throw error;
     }
