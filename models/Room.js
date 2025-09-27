@@ -15,6 +15,7 @@ const roomSchema = new mongoose.Schema(
     perChildPrice: { type: Number, required: true },
     discount: { type: Number, default: 0 },
     taxPercentage: { type: Number, default: 18 }, // Tax percentage for this room type
+    commission: { type: Number, default: 0 }, // Commission percentage for this room type
     maxGuests: { type: Number, required: true },
     roomSize: { type: String },
     availability: { type: String, default: "Available" },

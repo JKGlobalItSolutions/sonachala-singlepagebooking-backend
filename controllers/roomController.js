@@ -67,9 +67,9 @@ const updateRoom = async (req, res) => {
     const updates = {};
 
     // Only update fields if they exist
-    ["type", "totalRooms", "pricePerNight", "bedType", "perAdultPrice", "perChildPrice", "discount", "maxGuests", "roomSize", "availability"].forEach(field => {
+    ["type", "totalRooms", "pricePerNight", "bedType", "perAdultPrice", "perChildPrice", "discount", "commission", "maxGuests", "roomSize", "availability"].forEach(field => {
       if (req.body[field] !== undefined) {
-        updates[field] = ["totalRooms","pricePerNight","perAdultPrice","perChildPrice","discount","maxGuests"].includes(field) 
+        updates[field] = ["totalRooms","pricePerNight","perAdultPrice","perChildPrice","discount","commission","maxGuests"].includes(field)
           ? Number(req.body[field])
           : req.body[field];
       }
