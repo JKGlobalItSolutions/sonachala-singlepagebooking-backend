@@ -49,70 +49,12 @@ exports.createBooking = async (req, res) => {
 
     const savedBooking = await newBooking.save();
 
-    // Send confirmation emails
-    try {
-      const { sendGuestConfirmationEmail, sendAdminNotificationEmail } = require('../utils/emailService');
-      const Hotel = require('../models/Hotel');
-      const Admin = require('../models/Admin');
-      
-      // Get admin email from hotel
-      console.log('Looking for hotel with ID:', bookingDetails.hotelId);
-      console.log('Hotel ID type:', typeof bookingDetails.hotelId);
-      
-      // Ensure hotelId is a valid ObjectId
-      const mongoose = require('mongoose');
-      if (!mongoose.Types.ObjectId.isValid(bookingDetails.hotelId)) {
-        console.error('Invalid hotel ID format:', bookingDetails.hotelId);
-        throw new Error('Invalid hotel ID format');
-      }
-      
-      const hotel = await Hotel.findById(bookingDetails.hotelId).populate('admin'); // Populate all admin fields
-      const admin = hotel?.admin; // Get the whole admin object
-      const adminEmail = admin?.email;
-      
-      console.log('Hotel found:', hotel);
-      console.log('Admin object:', admin); // Log the entire admin object
-      console.log('Admin email:', adminEmail);
-      
-      if (!hotel) {
-        console.error('Hotel not found for ID:', bookingDetails.hotelId);
-      }
-      if (!admin) {
-        console.error('Admin not found for hotel:', hotel);
-      }
-      if (!adminEmail) {
-        console.error('Admin email not found for hotel:', hotel);
-      }
-      
-      // Send email to guest
-      await sendGuestConfirmationEmail(savedBooking);
-      
-      // Send email to admin
-      if (adminEmail) {
-        await sendAdminNotificationEmail(savedBooking, admin);
-      } else {
-        console.warn('Admin email not found, sending to fallback email');
-        await sendAdminNotificationEmail(savedBooking, { email: process.env.EMAIL_USER }); // Pass fallback email as an object
-      }
-      
-      res.status(201).json({
-        message: 'Booking created successfully',
-        bookingId: savedBooking.bookingId,
-        confirmationId: savedBooking.confirmationId,
-        booking: savedBooking,
-        emailSent: true
-      });
-    } catch (emailError) {
-      console.error('Error sending confirmation emails:', emailError);
-      // Still return success even if email fails
-      res.status(201).json({
-        message: 'Booking created successfully but email notification failed',
-        bookingId: savedBooking.bookingId,
-        confirmationId: savedBooking.confirmationId,
-        booking: savedBooking,
-        emailSent: false
-      });
-    }
+    res.status(201).json({
+      message: 'Booking created successfully',
+      bookingId: savedBooking.bookingId,
+      confirmationId: savedBooking.confirmationId,
+      booking: savedBooking
+    });
   } catch (error) {
     console.error("Booking creation error:", error);
     
