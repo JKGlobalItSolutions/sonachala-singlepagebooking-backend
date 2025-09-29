@@ -27,18 +27,18 @@ const app = express();
 
 
 
-// const allowedOrigins = [
-//   "http://localhost:8080", // customer frontend
-//   "http://localhost:5173", // admin frontend
-// ];
-
-
-
-
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  process.env.ADMIN_URL,
+  "http://localhost:8080", // customer frontend
+  "http://localhost:5173", // admin frontend
 ];
+
+
+
+
+// const allowedOrigins = [
+//   process.env.FRONTEND_URL,
+//   process.env.ADMIN_URL,
+// ];
 
 
 app.use(

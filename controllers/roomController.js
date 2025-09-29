@@ -131,7 +131,40 @@ const getRoomsByHotelId = async (req, res) => {
   try {
     const { hotelId } = req.params;
     const rooms = await Room.find({ hotel: hotelId });
-    res.json(rooms);
+
+    // Get all bookings for the hotel
+    const bookings = await Booking.find({ "bookingDetails.hotelId": hotelId });
+
+    // Calculate room availability
+    const now = new Date();
+    const roomAvailability = {};
+
+    // Initialize with total rooms
+    rooms.forEach(room => {
+      roomAvailability[room._id] = room.totalRooms;
+    });
+
+    // Subtract booked rooms
+    bookings.forEach(booking => {
+      if (booking.paymentDetails.paymentStatus === 'completed') {
+        const checkIn = new Date(booking.bookingDetails.checkIn);
+        const checkOut = new Date(booking.bookingDetails.checkOut);
+        if (now >= checkIn && now < checkOut) {
+          const roomId = booking.roomDetails.roomId.toString();
+          if (roomAvailability[roomId]) {
+            roomAvailability[roomId] -= booking.bookingDetails.numberOfRooms;
+          }
+        }
+      }
+    });
+
+    // Add available count to each room object
+    const roomsWithAvailability = rooms.map(room => ({
+      ...room.toObject(),
+      availableCount: roomAvailability[room._id] || 0,
+    }));
+
+    res.json(roomsWithAvailability);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
