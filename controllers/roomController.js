@@ -17,6 +17,12 @@ const createRoom = async (req, res) => {
       image: req.file ? req.file.path : "", // This will be the Cloudinary URL
     });
 
+    // Emit Socket.IO event for real-time updates
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('roomCreated', { room, hotelId: hotel._id });
+    }
+
     res.status(201).json({ message: "Room created", room });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -88,6 +94,12 @@ const updateRoom = async (req, res) => {
 
     if (!room) return res.status(404).json({ message: "Room not found" });
 
+    // Emit Socket.IO event for real-time updates
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('roomUpdated', { room, hotelId: hotel._id });
+    }
+
     res.json({ message: "Room updated successfully", room });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -110,6 +122,12 @@ const deleteRoom = async (req, res) => {
 
     const room = await Room.findOneAndDelete({ _id: id, hotel: hotel._id });
     if (!room) return res.status(404).json({ message: "Room not found" });
+
+    // Emit Socket.IO event for real-time updates
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('roomDeleted', { roomId: id, hotelId: hotel._id });
+    }
 
     res.json({ message: "Room deleted successfully" });
   } catch (err) {
