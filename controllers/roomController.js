@@ -11,11 +11,58 @@ const createRoom = async (req, res) => {
     const hotel = await Hotel.findOne({ admin: req.admin._id });
     if (!hotel) return res.status(400).json({ message: "Create a hotel first" });
 
-    const room = await Room.create({
-      ...req.body,
+    // Log all received data for debugging
+    console.log('=== CREATE ROOM DEBUG ===');
+    console.log('Raw req.body:', JSON.stringify(req.body, null, 2));
+    console.log('req.file:', req.file);
+
+    // Handle both regular form data and multipart form data
+    let formData = req.body;
+
+    // If multer processed the form, we need to extract text fields differently
+    if (req.file && Object.keys(req.body).length === 0) {
+      console.log('Multipart form detected, parsing text fields...');
+      // When multer processes multipart forms, text fields might be in different location
+      formData = req.body || {};
+    }
+
+    console.log('Final formData being used:', formData);
+
+    // Extract all fields with proper validation
+    const roomData = {
       hotel: hotel._id,
-      image: req.file ? req.file.path : "", // This will be the Cloudinary URL
-    });
+      type: formData.type || '',
+      roomDescription: formData.roomDescription || '',
+      totalRooms: Number(formData.totalRooms) || 0,
+      pricePerNight: Number(formData.pricePerNight) || 0,
+      bedType: formData.bedType || '',
+      perAdultPrice: Number(formData.perAdultPrice) || 0,
+      perChildPrice: Number(formData.perChildPrice) || 0,
+      discount: Number(formData.discount) || 0,
+      taxPercentage: Number(formData.taxPercentage) || 18,
+      commission: Number(formData.commission) || 0,
+      maxGuests: Number(formData.maxGuests) || 0,
+      roomSize: formData.roomSize || '',
+      availability: formData.availability || 'Available',
+      image: req.file ? req.file.path : "",
+    };
+
+    console.log('Room data to be saved:', JSON.stringify(roomData, null, 2));
+
+    // Validate required fields
+    if (!roomData.type || !roomData.roomDescription) {
+      return res.status(400).json({
+        message: "Missing required fields",
+        received: formData,
+        missing: {
+          type: !roomData.type,
+          roomDescription: !roomData.roomDescription
+        }
+      });
+    }
+
+    const room = await Room.create(roomData);
+    console.log('Room created successfully:', JSON.stringify(room, null, 2));
 
     // Emit Socket.IO event for real-time updates
     const io = req.app.get('io');
@@ -25,6 +72,7 @@ const createRoom = async (req, res) => {
 
     res.status(201).json({ message: "Room created", room });
   } catch (err) {
+    console.error('Error creating room:', err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
@@ -73,7 +121,7 @@ const updateRoom = async (req, res) => {
     const updates = {};
 
     // Only update fields if they exist
-    ["type", "totalRooms", "pricePerNight", "bedType", "perAdultPrice", "perChildPrice", "discount", "commission", "maxGuests", "roomSize", "availability"].forEach(field => {
+    ["type", "roomDescription", "totalRooms", "pricePerNight", "bedType", "perAdultPrice", "perChildPrice", "discount", "commission", "maxGuests", "roomSize", "availability"].forEach(field => {
       if (req.body[field] !== undefined) {
         updates[field] = ["totalRooms","pricePerNight","perAdultPrice","perChildPrice","discount","commission","maxGuests"].includes(field)
           ? Number(req.body[field])
