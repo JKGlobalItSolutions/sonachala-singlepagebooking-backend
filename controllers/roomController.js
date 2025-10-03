@@ -148,31 +148,42 @@ const deleteRoom = async (req, res) => {
 const getRoomsByHotelId = async (req, res) => {
   try {
     const { hotelId } = req.params;
+    const { checkIn: checkInDate, checkOut: checkOutDate } = req.query;
+
     const rooms = await Room.find({ hotel: hotelId });
 
-    // Get all bookings for the hotel
-    const bookings = await Booking.find({ "bookingDetails.hotelId": hotelId });
+    // If no dates are provided, return rooms without availability count
+    if (!checkInDate || !checkOutDate) {
+      return res.json(rooms.map(room => ({
+        ...room.toObject(),
+        availableCount: room.totalRooms, // Assume all are available if no dates
+      })));
+    }
 
-    // Calculate room availability
-    const now = new Date();
+    const searchCheckIn = new Date(checkInDate);
+    const searchCheckOut = new Date(checkOutDate);
+
+    // Get all confirmed bookings for the hotel that overlap with the search dates
+    const bookings = await Booking.find({
+      "bookingDetails.hotelId": hotelId,
+      "paymentDetails.paymentStatus": 'completed',
+      "bookingDetails.checkIn": { $lt: searchCheckOut },
+      "bookingDetails.checkOut": { $gt: searchCheckIn },
+    });
+
+    // Calculate room availability for the specified date range
     const roomAvailability = {};
 
-    // Initialize with total rooms
+    // Initialize with total rooms for each room type
     rooms.forEach(room => {
       roomAvailability[room._id] = room.totalRooms;
     });
 
-    // Subtract booked rooms
+    // Subtract booked rooms for the overlapping period
     bookings.forEach(booking => {
-      if (booking.paymentDetails.paymentStatus === 'completed') {
-        const checkIn = new Date(booking.bookingDetails.checkIn);
-        const checkOut = new Date(booking.bookingDetails.checkOut);
-        if (now >= checkIn && now < checkOut) {
-          const roomId = booking.roomDetails.roomId.toString();
-          if (roomAvailability[roomId]) {
-            roomAvailability[roomId] -= booking.bookingDetails.numberOfRooms;
-          }
-        }
+      const roomId = booking.roomDetails.roomId.toString();
+      if (roomAvailability[roomId] !== undefined) {
+        roomAvailability[roomId] -= booking.bookingDetails.numberOfRooms;
       }
     });
 
