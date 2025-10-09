@@ -1,4 +1,3 @@
-
 const express = require("express");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
@@ -9,14 +8,7 @@ const roomRoutes = require("./routes/roomRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const http = require("http");
 const socketIo = require("socket.io");
-
-
-
-
-
-
 const cors = require("cors");
-
 const path = require("path");
 
 dotenv.config();
@@ -24,61 +16,39 @@ connectDB();
 
 const app = express();
 
-
-
-
-
-
-// const allowedOrigins = [
-//   "http://localhost:8080", // customer frontend
-//   "http://localhost:5173", // admin frontend
-// ];
-
-
-
-
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  process.env.ADMIN_URL,
-];
-
+// CORS setup: allow admin URL and any Netlify frontend deploy
+const allowedAdminOrigin = process.env.ADMIN_URL;
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+      if (!origin) {
+        // Allow requests with no origin (Postman, server-to-server)
+        return callback(null, true);
       }
+      // Allow admin URL OR any Netlify frontend URL
+      if (origin === allowedAdminOrigin || origin.includes("netlify.app")) {
+        return callback(null, true);
+      } 
+      // Block everything else
+      callback(new Error("Not allowed by CORS"));
     },
-    credentials: true,
+    credentials: true, // allow cookies or auth headers
   })
 );
-
-
-
-
-
 
 // Body parsing middleware with increased limit
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-
-
-
+// Serve static uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// Routes
 app.use("/admin", adminRoutes);
 app.use("/hotel", hotelRoutes);
 app.use("/rooms", roomRoutes);
 app.use("/bookings", bookingRoutes);
-
-
-
-
-
 
 // Global error handling middleware
 app.use((err, req, res, next) => {
@@ -103,10 +73,16 @@ process.on('uncaughtException', (err) => {
 // Create HTTP server
 const server = http.createServer(app);
 
-// Initialize Socket.IO
+// Initialize Socket.IO with same CORS rules
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:8080", "http://localhost:5173"],
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (origin === allowedAdminOrigin || origin.includes("netlify.app")) {
+        return callback(null, true);
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
     methods: ["GET", "POST"]
   }
 });
