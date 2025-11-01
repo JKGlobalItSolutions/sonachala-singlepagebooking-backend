@@ -27,7 +27,7 @@ app.use(
         return callback(null, true);
       }
       // Allow admin URL OR any Netlify frontend URL
-      if (origin === allowedAdminOrigin || origin.includes(".com")) {
+      if (origin === allowedAdminOrigin || origin.includes("github.io")) {
         return callback(null, true);
       } 
       // Block everything else
