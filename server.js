@@ -78,7 +78,7 @@ const io = socketIo(server, {
   cors: {
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-      if (origin === allowedAdminOrigin || origin.includes(".com")) {
+      if (origin === allowedAdminOrigin || origin.includes("residency.com")) {
         return callback(null, true);
       }
       callback(new Error("Not allowed by CORS"));
